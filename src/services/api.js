@@ -121,9 +121,9 @@ export const apiService = {
         return api.post('/transactions', transferData);
     },
 
-    makeDeposit: (depositDate) => {
-        return api.post('/transactions', depositDate);
-    },
+    // makeDeposit: (depositDate) => {
+    //     return api.post('/transactions', depositDate);
+    // },
 
 
     // Get transactions for an account
