@@ -81,7 +81,17 @@ const Navbar = () => {
                 </ul>
             </div>
 
-            
+            {showModal && (
+                <div className="modal-backdrop">
+                    <div className="modal">
+                        <p>Are you sure you want to logout?</p>
+                        <div className="modal-actions">
+                            <button onClick={confirmLogout} className="btn-confirm">Yes</button>
+                            <button onClick={cancelLogout} className="btn-cancel">No</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </nav>
     );

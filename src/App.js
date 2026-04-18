@@ -6,6 +6,13 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/profile";
+import UpdateProfile from "./pages/UpdateProfile";
+import ForgotPassword from "./pages/ForgatePassword";
+import ResetPassword from "./pages/ResetPassword";
+import Transactions from "./pages/Transactions";
+import Transfer from "./pages/Transfer";
+import AuditorDashboard from "./pages/AuditorDashboard";
+import Deposit from "./pages/Deposit";
 
 
 function App() {
@@ -20,6 +27,17 @@ function App() {
         <Route path="/" element={<Home />} />
 
         <Route path="/profile" element={<Profile />} />
+        <Route path="/update-profile" element={<UpdateProfile />} />
+
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+
+        <Route path="/transactions" element={<Transactions />} />
+        <Route path="/transfer" element={<Transfer />} />
+
+
+        <Route path="/auditor-dashboard" element={<AuditorDashboard />} />
+        <Route path="/deposit" element={<Deposit />} />
 
         {/* WILDCARD ROUTE */}
         <Route path="*" element={<NotFound />} />
