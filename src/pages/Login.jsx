@@ -10,7 +10,7 @@ const Login = () => {
         password: ''
     });
 
-    const [error, setError] = useState(''); 
+    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -95,7 +95,7 @@ const Login = () => {
                 </div>
 
                 <div className="auth-link">
-                    Forgot password? <Link to="/forgot-password">Reset Here</Link>
+                    Forgot password? <Link to="/forgot-password">Forgot Password</Link>
                 </div>
             </div>
         </div>

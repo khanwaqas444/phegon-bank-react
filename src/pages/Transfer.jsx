@@ -247,16 +247,7 @@ const Transfer = () => {
                             </button>
                         </div>
 
-                        {destinationAccountInfo && (
-                            <div className="account-info">
-                                <h4>Destination Account Verified</h4>
-                                <div className="account-details">
-                                    <p><strong>Account Type:</strong> {destinationAccountInfo.accountType}</p>
-                                    <p><strong>Account Number:</strong> {destinationAccountInfo.accountNumber}</p>
-                                    <p><strong>Status:</strong> <span className={`status ${destinationAccountInfo.status.toLowerCase()}`}>{destinationAccountInfo.status}</span></p>
-                                </div>
-                            </div>
-                        )}
+                        
 
                         <div className="form-group">
                             <label htmlFor="amount">Amount *</label>

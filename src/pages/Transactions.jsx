@@ -15,7 +15,7 @@ const Transactions = () => {
     const [pagination, setPagination] = useState({
         currentPage: 0,
         totalPages: 0,
-        pageSize: 2,
+        pageSize: 5,
         totalItems: 0
     });
 
@@ -90,7 +90,7 @@ const Transactions = () => {
         return new Date(dateString).toLocaleString();
     };
 
-    const formatAmount = (amount, type, destinationAccount) => {
+    const formatAmount = (amount, type) => {
         let sign = '-';
 
         if (type === 'DEPOSIT') {
