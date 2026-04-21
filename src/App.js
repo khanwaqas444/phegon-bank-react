@@ -13,6 +13,7 @@ import Transactions from "./pages/Transactions";
 import Transfer from "./pages/Transfer";
 import AuditorDashboard from "./pages/AuditorDashboard";
 import Deposit from "./pages/Deposit";
+import { CustomerRoute } from "./services/Guard";
 
 
 function App() {
@@ -26,7 +27,7 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/" element={<Home />} />
 
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile" element={<CustomerRoute element={<Profile />} />} />
         <Route path="/update-profile" element={<UpdateProfile />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
