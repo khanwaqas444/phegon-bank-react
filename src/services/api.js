@@ -1,9 +1,9 @@
 import axios from "axios";
 
 
-const API_BASE_URL = "http://localhost:8090/api"; //local url
+// const API_BASE_URL = "http://localhost:8090/api"; //local url
 
-// const API_BASE_URL = "http://3.141.18.52:8090/api";//prod url
+const API_BASE_URL = "http://54.87.58.233:8090/api";//prod url
 
 
 // Create axios instance
@@ -121,9 +121,9 @@ export const apiService = {
         return api.post('/transactions', transferData);
     },
 
-    // makeDeposit: (depositDate) => {
-    //     return api.post('/transactions', depositDate);
-    // },
+    makeDeposit: (depositDate) => {
+        return api.post('/transactions', depositDate);
+    },
 
 
     // Get transactions for an account

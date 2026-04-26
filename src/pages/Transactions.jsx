@@ -1,208 +1,326 @@
-import { useEffect, useState } from "react";
-import { apiService } from "../services/api";
+import { useState, useEffect } from "react";
+import { apiService } from '../services/api';
 
 
 
-const Transactions = () => {
 
+const Transfer = () => {
 
-    const [transactions, setTransactions] = useState([]);
-    const [selectedAccount, setSelectedAccount] = useState('');
-    const [userAccounts, setUserAccounts] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-
-    const [pagination, setPagination] = useState({
-        currentPage: 0,
-        totalPages: 0,
-        pageSize: 5,
-        totalItems: 0
+    const [formData, setFormData] = useState({
+        amount: '',
+        accountNumber: '',
+        destinationAccountNumber: '',
+        description: ''
     });
 
 
+    const [userAccounts, setUserAccounts] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+
+    const [destinationAccountInfo, setDestinationAccountInfo] = useState(null);
+    const [verifyingAccount, setVerifyingAccount] = useState(false);
+
+
     useEffect(() => {
+
         const fetchUserAccounts = async () => {
             try {
+
                 const response = await apiService.getMyAccounts();
+
                 if (response.data.statusCode === 200) {
                     setUserAccounts(response.data.data);
-                    setSelectedAccount(response.data.data[0].accountNumber);
+
+                    if (response.data.data.length > 0) {
+                        setFormData(prev => ({
+                            ...prev,
+                            accountNumber: response.data.data[0].accountNumber
+                        }));
+                    }
                 }
+
 
             } catch (error) {
                 console.log(error)
             }
         }
-
-        fetchUserAccounts();
-    }, [])
-
+        fetchUserAccounts()
+    }, []);
 
 
-    useEffect(() => {
 
-        if (selectedAccount) {
-            fetchTransactions(selectedAccount, 0);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({
+            ...formData,
+            [name]: value
+        });
+    };
+
+
+
+    const verifyDestinationAccount = async () => {
+        if (!formData.destinationAccountNumber.trim()) {
+            setError('Please enter a destination account number');
+            return;
         }
 
-    }, [selectedAccount]);
+        if (formData.accountNumber === formData.destinationAccountNumber) {
+            setError('Source and destination accounts cannot be the same');
+            return;
+        }
 
-
-    const fetchTransactions = async (accountNumber, page) => {
-
-        setLoading(true);
+        setVerifyingAccount(true);
         setError('');
+        setDestinationAccountInfo(null);
 
         try {
-            const response = await apiService.getTransactions(accountNumber, page, pagination.pageSize);
-            if (response.data.statusCode === 200) {
-                setTransactions(response.data.data);
-                setPagination({
-                    currentPage: response.data.meta.currentPage,
-                    totalPages: response.data.meta.totalPages,
-                    pageSize: response.data.meta.pageSize,
-                    totalItems: response.data.meta.totalItems
-                });
+
+            const response = await apiService.findAccountByAccountNumber(formData.destinationAccountNumber);
+            const account = response.data || [];
+
+            if (account.accountNumber) {
+                setDestinationAccountInfo(account);
+                setSuccess(`Account verified: ${account.accountType} Account`);
             } else {
-                setError(response.data.message);
+                setError('Destination account not found. Please check the account number.');
+            }
+        } catch (error) {
+            setError('Error verifying destination account ', error);
+            console.error('Account verification error:', error);
+        } finally {
+            setVerifyingAccount(false);
+        }
+    };
+
+
+    const handleSubmit = async (e) => {
+
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        setSuccess('');
+
+        // Validate form
+        if (!formData.amount || !formData.destinationAccountNumber) {
+            setError('Please fill in all required fields');
+            setLoading(false);
+            return;
+        }
+
+        if (parseFloat(formData.amount) <= 0) {
+            setError('Amount must be greater than 0');
+            setLoading(false);
+            return;
+        }
+
+        if (formData.accountNumber === formData.destinationAccountNumber) {
+            setError('Source and destination accounts cannot be the same');
+            setLoading(false);
+            return;
+        }
+
+
+        // Check if destination account is verified
+        if (!destinationAccountInfo) {
+            setError('Please verify the destination account before transferring');
+            setLoading(false);
+            return;
+        }
+
+
+        // Check if source account has sufficient balance
+        const sourceAccount = userAccounts.find(acc => acc.accountNumber === formData.accountNumber);
+        if (sourceAccount && parseFloat(formData.amount) > sourceAccount.balance) {
+            setError('Insufficient balance in source account');
+            setLoading(false);
+            return;
+        }
+
+
+        try {
+
+            const transferData = {
+                transactionType: 'TRANSFER',
+                amount: parseFloat(formData.amount),
+                accountNumber: formData.accountNumber,
+                destinationAccountNumber: formData.destinationAccountNumber,
+                description: formData.description || null
+            }
+
+            const response = await apiService.makeTransfer(transferData);
+
+
+            if (response.data.statusCode === 200) {
+                setSuccess('Transfer completed successfully!');
+                // Reset form
+                setFormData({
+                    amount: '',
+                    destinationAccountNumber: '',
+                    description: '',
+                    accountNumber: userAccounts[0]?.accountNumber || ''
+                });
+
+
+                setDestinationAccountInfo(null);
+
+                // Refresh user data after successful transfer
+                setTimeout(() => {
+                    window.location.reload();
+                }, 5000);
+            } else {
+                setError(response.data.message || 'Transfer failed');
             }
 
         } catch (error) {
-            setError(error.response?.data?.message || 'An error occurred while fetching transactions');
+            setError(error.response?.data?.message || 'An error occurred during transfer');
 
         } finally {
-            setLoading(false)
+
+            setLoading(false);
         }
     }
 
-
-    const handleAccountChange = (e) => {
-        setSelectedAccount(e.target.value);
+    const formatCurrency = (amount, currency = 'USD') => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: currency
+        }).format(amount);
     };
 
-    const handlePageChange = (newPage) => {
-        if (newPage >= 0 && newPage < pagination.totalPages) {
-            fetchTransactions(selectedAccount, newPage);
-        }
-    };
-
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleString();
-    };
-
-    const formatAmount = (amount, type) => {
-        let sign = '-';
-
-        if (type === 'DEPOSIT') {
-            sign = '+';
-        }
-        else if (type === 'TRANSFER' && destinationAccount === selectedAccount) {
-            sign = '+';
-        }
-
-        return `${sign}$${Math.abs(amount).toFixed(2)}`;
-    };
 
 
 
 
     return (
-        <div className="transactions-container">
-
-            <div className="transactions-header">
-                <h1>Transaction History</h1>
+        <div className="transfer-container">
+            <div className="transfer-header">
+                <h1>Make a Transfer</h1>
             </div>
 
-            <div className="transactions-content">
-                {error && <div className="error-message">{error}</div>}
+            <div className="transfer-content">
 
-                <div className="account-selector">
-                    <label htmlFor="accountSelect">Select Account:</label>
-                    <select
-                        id="accountSelect"
-                        value={selectedAccount}
-                        onChange={handleAccountChange}
-                        disabled={loading}
-                    >
-                        {userAccounts.map(account => (
-                            <option key={account.id} value={account.accountNumber}>
-                                {account.accountNumber} - {account.accountType}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                <div className="transfer-form-section">
 
-                {loading ? (
-                    <div className="loading">Loading transactions...</div>
-                ) : (
-                    <>
+                    {error && <div className="error-message">{error}</div>}
+                    {success && <div className="success-message">{success}</div>}
+                    <form onSubmit={handleSubmit} className="transfer-form">
+                        <div className="form-group">
+                            <label htmlFor="accountNumber">From Account</label>
+                            <select
+                                id="accountNumber"
+                                name="accountNumber"
+                                value={formData.accountNumber}
+                                onChange={handleChange}
+                                required
+                            >
+                                {userAccounts.map(account => (
+                                    <option key={account.id} value={account.accountNumber}>
+                                        {account.accountNumber} - {account.accountType} ({account.currency} {account.balance.toFixed(2)})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
-                        <div className="transactions-list">
-                            {transactions.length === 0 ? (
-                                <div className="no-transactions">
-                                    No transactions found for this account
+                        <div className="form-group">
+                            <label htmlFor="destinationAccountNumber">Destination Account Number *</label>
+                            <input
+                                type="text"
+                                id="destinationAccountNumber"
+                                name="destinationAccountNumber"
+                                value={formData.destinationAccountNumber}
+                                onChange={handleChange}
+                                placeholder="Enter destination account number"
+                                required
+                            />
+
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={verifyDestinationAccount}
+                                disabled={verifyingAccount || !formData.destinationAccountNumber}
+                            >
+                                {verifyingAccount ? 'Verifying...' : 'Verify'}
+                            </button>
+                        </div>
+
+                        {destinationAccountInfo && (
+                            <div className="account-info">
+                                <h4>Destination Account Verified</h4>
+                                <div className="account-details">
+                                    <p><strong>Account Type:</strong> {destinationAccountInfo.accountType}</p>
+                                    <p><strong>Account Number:</strong> {destinationAccountInfo.accountNumber}</p>
+                                    <p><strong>Status:</strong> <span className={`status ${destinationAccountInfo.status.toLowerCase()}`}>{destinationAccountInfo.status}</span></p>
                                 </div>
-                            ) : (
-                                transactions.map(transaction => (
-                                    <div key={transaction.id} className="transaction-item">
-                                        <div className="transaction-main">
-                                            <div className="transaction-type">{transaction.transactionType}</div>
+                            </div>
+                        )}
 
-                                            <div className={`transaction-amount ${transaction.transactionType === 'DEPOSIT' ||
-                                                (transaction.transactionType === 'TRANSFER' && transaction.destinationAccount === selectedAccount)
-                                                ? 'deposit'
-                                                : 'withdrawal'
-                                                }`}>
-                                                {formatAmount(transaction.amount, transaction.transactionType, transaction.destinationAccount)}
-                                            </div>
-
-                                        </div>
-                                        <div className="transaction-details">
-                                            <div className="transaction-date">{formatDate(transaction.transactionDate)}</div>
-                                            <div className="transaction-description">{transaction.description}</div>
-                                            <div className="transaction-status">{transaction.status}</div>
-                                            {transaction.sourceAccount && transaction.destinationAccount && (
-                                                <div className="transaction-accounts">
-                                                    From: {transaction.sourceAccount} → To: {transaction.destinationAccount}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))
+                        <div className="form-group">
+                            <label htmlFor="amount">Amount *</label>
+                            <input
+                                type="number"
+                                id="amount"
+                                name="amount"
+                                value={formData.amount}
+                                onChange={handleChange}
+                                placeholder="0.00"
+                                min="0.01"
+                                step="0.01"
+                                required
+                            />
+                            {formData
+                            .amount && (
+                                <div className="balance-check">
+                                    <small>
+                                        Available: {formatCurrency(
+                                            userAccounts.find(acc => acc.accountNumber === formData.accountNumber)?.balance || 0
+                                        )}
+                                    </small>
+                                </div>
                             )}
                         </div>
 
+                        <div className="form-group">
+                            <label htmlFor="description">Description</label>
+                            <input
+                                type="text"
+                                id="description"
+                                name="description"
+                                value={formData.description}
+                                onChange={handleChange}
+                                placeholder="Optional description"
+                            />
+                        </div>
 
-                        {pagination.totalPages > 0 && (
-                            <div className="pagination">
-                                <button
-                                    onClick={() => handlePageChange(pagination.currentPage - 1)}
-                                    disabled={pagination.currentPage === 0}
-                                    className="pagination-btn"
-                                >
-                                    Previous
-                                </button>
-                                <span className="pagination-info">
-                                    Page {pagination.currentPage + 1} of {pagination.totalPages}
-                                </span>
-                                <button
-                                    onClick={() => handlePageChange(pagination.currentPage + 1)}
-                                    disabled={pagination.currentPage === pagination.totalPages - 1}
-                                    className="pagination-btn"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        )}
-                    </>
-                )}
+                        <button
+                            type="submit"
+                            className="btn btn-primary transfer-btn"
+                            disabled={loading}
+                        >
+                            {loading ? 'Processing Transfer...' : 'Transfer Money'}
+                        </button>
+                    </form>
+                </div>
+
+                <div className="transfer-guidelines">
+                    <h3>Transfer Guidelines</h3>
+                    <ul>
+                        <li>Transfers are processed instantly</li>
+                        <li>Ensure the destination account number is correct</li>
+                        <li>Double-check the amount before confirming</li>
+                        <li>Transfers cannot be reversed once processed</li>
+                        <li>Contact support if you encounter any issues</li>
+                    </ul>
+                </div>
 
             </div>
-
         </div>
-    )
+    );
 
 
 }
 
-export default Transactions;
+export default Transfer;

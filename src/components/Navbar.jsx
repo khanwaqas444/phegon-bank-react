@@ -54,9 +54,9 @@ const Navbar = () => {
                                         <Link to="/auditor-dashboard" className="navbar-link">Auditor Dashboard</Link>
                                     </li>
 
-                                    {/* <li className="navbar-item">
+                                    { <li className="navbar-item">
                                         <Link to="/deposit" className="navbar-link">Deposit</Link>
-                                    </li> */}
+                                    </li> }
                                 </>
                             )}
                             <li className="navbar-item">
